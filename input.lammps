@@ -1,0 +1,54 @@
+#LAMMPS input script
+#Improved coarse-grained model for studying sequence dependent phase separation of disordered proteins
+#初始化
+units real			#distance Angstroms; time fs; energy kcal/mol; mass grams/mole
+atom_style full
+bond_style harmonic		#简谐
+boundary p p p			#非周期边界; p为周期
+
+#labelmap atom 1 ALA 2 ARG 3 ASN 4 ASP 5 CYS 6 GLN 7 GLU 8 GLY 9 HIS 10 ILE 11 LEU 12 LYS 13 MET 14 PHE 15 PRO 16 SER 17 THR 18 TRP 19 TYR 20 VAL
+
+timestep 10
+
+read_data CTD_alpha.data
+#block box
+#region box block -250 250 -250 250 -250 250
+#create_box 20 box 		#20 residue types
+
+neighbor    3.5 multi
+neigh_modify  every 10 delay 0
+
+#pair_style lj/guoqing 600
+
+pair_style ljlambda 0.1 0.0 35.0
+
+include pair_param_ljlambda.in
+
+dielectric 80
+
+bond_coeff 1 10 3.82           #all bonds; 10kcal; 3.82 A
+
+#thermo_style    custom step time temp pe evdwl ecoul elong ke etotal density press pxx pyy pzz vol lx ly lz
+#thermo  1000
+
+#min_style cg
+#minimize 1.0e-4 1.0e-6 100 1000
+
+#reset_timestep 0
+group alpha id 52:74
+fix 1 alpha rigid molecule
+
+fix mynve all nve
+fix mytemp all langevin 300 300 1000000 56561
+
+dump mydump all custom 10000 HPS.lammpstrj id type x y z
+
+dump_modify mydump append yes
+dump 2 all dcd 10000 HPS.dcd
+
+restart 100000000 tmp.restart
+
+run 1000000000 upto
+write_data HPS_out.data
+
+ 
